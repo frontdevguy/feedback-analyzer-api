@@ -1,0 +1,13 @@
+{
+  "mappings": {
+    "properties": {
+      "word_counts": {
+        "type": "nested",
+        "properties": {
+          "word": { "type": "keyword" },
+          "count": { "type": "integer" }
+        }
+      }
+    }
+  }
+}

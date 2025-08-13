@@ -1,0 +1,12 @@
+{
+  "mappings": {
+    "properties": {
+      "feedback_id": { "type": "keyword" },
+      "product_name": { "type": "keyword" },
+      "feedback_text": { "type": "text" },
+      "media_urls": { "type": "keyword", "index": false },
+      "sentiment": { "type": "keyword" },
+      "topics": { "type": "keyword" }
+    }
+  }
+}
