@@ -60,20 +60,20 @@ jobs:
                       "files": {
                           "collect_list": [
                               {
-                                  "file_path": "/opt/unc-api/logs/app.log",
-                                  "log_group_name": "/unc-api/application",
+                                  "file_path": "/opt/feedback-api/logs/app.log",
+                                  "log_group_name": "/feedback-api/application",
                                   "log_stream_name": "{instance_id}/application",
                                   "timezone": "UTC"
                               },
                               {
                                   "file_path": "/var/log/nginx/access.log",
-                                  "log_group_name": "/unc-api/nginx",
+                                  "log_group_name": "/feedback-api/nginx",
                                   "log_stream_name": "{instance_id}/nginx-access",
                                   "timezone": "UTC"
                               },
                               {
                                   "file_path": "/var/log/nginx/error.log",
-                                  "log_group_name": "/unc-api/nginx",
+                                  "log_group_name": "/feedback-api/nginx",
                                   "log_stream_name": "{instance_id}/nginx-error",
                                   "timezone": "UTC"
                               }
@@ -90,10 +90,10 @@ jobs:
           sudo systemctl restart amazon-cloudwatch-agent
 
           # Setup application
-          cd /opt/unc-api || sudo mkdir -p /opt/unc-api
-          sudo mkdir -p /opt/unc-api/logs
-          sudo chown -R ubuntu:ubuntu /opt/unc-api
-          cd /opt/unc-api
+          cd /opt/feedback-api || sudo mkdir -p /opt/feedback-api
+          sudo mkdir -p /opt/feedback-api/logs
+          sudo chown -R ubuntu:ubuntu /opt/feedback-api
+          cd /opt/feedback-api
 
           # Remove existing directory contents if not a git repo
           if [ ! -d ".git" ]; then
@@ -110,18 +110,18 @@ jobs:
           pip install -r requirements.txt
 
           # Ensure logs directory exists with proper permissions
-          sudo mkdir -p /opt/unc-api/logs
-          sudo touch /opt/unc-api/logs/app.log
-          sudo chown -R ubuntu:ubuntu /opt/unc-api/logs
-          sudo chmod 755 /opt/unc-api/logs
-          sudo chmod 644 /opt/unc-api/logs/app.log
+          sudo mkdir -p /opt/feedback-api/logs
+          sudo touch /opt/feedback-api/logs/app.log
+          sudo chown -R ubuntu:ubuntu /opt/feedback-api/logs
+          sudo chmod 755 /opt/feedback-api/logs
+          sudo chmod 644 /opt/feedback-api/logs/app.log
 
           # Get number of CPU cores and calculate workers
           echo "Calculating optimal number of workers..."
           WORKER_COUNT=$(nproc)
 
           # Create service file with logging configuration
-          sudo bash -c "cat > /etc/systemd/system/unc-api.service" << EOF
+          sudo bash -c "cat > /etc/systemd/system/feedback-api.service" << EOF
           [Unit]
           Description=Unc API FastAPI Application
           After=network.target
@@ -129,15 +129,15 @@ jobs:
           [Service]
           User=ubuntu
           Group=ubuntu
-          WorkingDirectory=/opt/unc-api
-                    Environment="PATH=/opt/unc-api/venv/bin"
-          Environment="PYTHONPATH=/opt/unc-api"
-          ExecStart=/opt/unc-api/venv/bin/uvicorn \
+          WorkingDirectory=/opt/feedback-api
+                    Environment="PATH=/opt/feedback-api/venv/bin"
+          Environment="PYTHONPATH=/opt/feedback-api"
+          ExecStart=/opt/feedback-api/venv/bin/uvicorn \
             app:app \
             --host 0.0.0.0 \
             --port 8000 \
             --workers ${WORKER_COUNT} \
-            --log-config /opt/unc-api/log_config.json
+            --log-config /opt/feedback-api/log_config.json
           Restart=always
           RestartSec=5
 
@@ -146,7 +146,7 @@ jobs:
           EOF
 
           # Create logging configuration
-          cat > /opt/unc-api/log_config.json << 'EOF'
+          cat > /opt/feedback-api/log_config.json << 'EOF'
           {
               "version": 1,
               "disable_existing_loggers": false,
@@ -159,7 +159,7 @@ jobs:
                   "default": {
                       "formatter": "standard",
                       "class": "logging.handlers.RotatingFileHandler",
-                      "filename": "/opt/unc-api/logs/app.log",
+                      "filename": "/opt/feedback-api/logs/app.log",
                       "maxBytes": 10485760,
                       "backupCount": 5
                   }
@@ -183,7 +183,7 @@ jobs:
           }
           EOF
 
-          sudo bash -c "cat > /etc/nginx/sites-available/unc-api" << EOF
+          sudo bash -c "cat > /etc/nginx/sites-available/feedback-api" << EOF
           server {
               server_name ${DOMAIN};
 
@@ -226,12 +226,12 @@ jobs:
           }
           EOF
 
-          sudo ln -sf /etc/nginx/sites-available/unc-api /etc/nginx/sites-enabled/
+          sudo ln -sf /etc/nginx/sites-available/feedback-api /etc/nginx/sites-enabled/
           sudo rm -f /etc/nginx/sites-enabled/default
           sudo systemctl restart nginx
 
           # Check if SSL is already configured in nginx
-          if ! grep -q "ssl_certificate" "/etc/nginx/sites-enabled/unc-api"; then
+          if ! grep -q "ssl_certificate" "/etc/nginx/sites-enabled/feedback-api"; then
             echo "No SSL configuration found. Running certbot..."
             sudo certbot --nginx \
               --non-interactive \
@@ -244,8 +244,8 @@ jobs:
           fi
 
           sudo systemctl daemon-reload
-          sudo systemctl enable unc-api
-          sudo systemctl restart unc-api
+          sudo systemctl enable feedback-api
+          sudo systemctl restart feedback-api
 
           # Install netstat if not available
           if ! command -v netstat &> /dev/null; then
@@ -257,10 +257,10 @@ jobs:
           sudo systemctl restart nginx
 
           # Show service status after restart
-          echo "Checking unc-api service status..."
-          sudo systemctl status unc-api --no-pager || true
+          echo "Checking feedback-api service status..."
+          sudo systemctl status feedback-api --no-pager || true
           echo "Recent service logs:"
-          sudo journalctl -u unc-api -n 50 --no-pager || true
+          sudo journalctl -u feedback-api -n 50 --no-pager || true
 
           echo "Testing nginx proxy to backend..."
           NGINX_RESPONSE=$(curl -s -w "\n%{http_code}" http://localhost/health/)
@@ -288,7 +288,7 @@ jobs:
 
       - name: Deployment Status
         env:
-          API_DOMAIN: "api.theuncproject.com"
+          API_DOMAIN: "apifeedback.jurshua.dev"
         run: |
           echo "Deployment completed successfully!"
           echo "Application is available at https://$API_DOMAIN"

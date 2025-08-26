@@ -1,4 +1,4 @@
-## TheUnc API Server
+## API Server
 
 FastAPI-based backend providing JWT authentication, topics management, dashboard statistics from OpenSearch, and database migrations with Alembic. Configuration is loaded from environment variables or AWS Secrets Manager.
 
